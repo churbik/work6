@@ -52,7 +52,7 @@ if __name__ == '__main__':
     amount = 0
     for i in range(1, int(driver.get_amount_str()) + 1):
         phones_list = driver.get_phones(str(i))
-        for phone in phones_list:
+        for phones in phones_list:
             if amount < 30:
                 db.upload_phones(phones)
                 amount += 1
