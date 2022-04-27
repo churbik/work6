@@ -1,0 +1,148 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "work6",
+      "provenance": [],
+      "authorship_tag": "ABX9TyOoQumzml8mUrOfGYBjisZI"
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": [
+        "import mysql.connector\n",
+        "from object import Phone\n",
+        "class Database:\n",
+        "    def __init__(self):\n",
+        "        self.con = mysql.connector.connect(host='gendalf.cf', port=3308, user='root', password='1234567890', database='Pasina')\n",
+        "        self.cur = self.con.cursor()\n",
+        "    def upload_phones(self, phones: Phone):\n",
+        "        self.cur.execute('INSERT INTO phones (name, price, url) VALUES (%s,%s,%s)', (phones.name, phones.price, phones.url))\n",
+        "    def commit(self):\n",
+        "        self.con.commit()\n",
+        "    def truncate(self):\n",
+        "        self.cur.execute('TRUNCATE phones')\n",
+        "import re\n",
+        "import threading\n",
+        "import typing\n",
+        "\n",
+        "from selenium import webdriver\n",
+        "from selenium.webdriver.common.keys import Keys\n",
+        "import db\n",
+        "from object import Phone, PhoneList\n",
+        "class Driver:\n",
+        "    def __init__(self):\n",
+        "        self.driver = webdriver.Chrome()\n",
+        "    def get_phones(self, page: str) -> typing.List[Phone]:\n",
+        "        self.driver.get(\n",
+        "            'https://www.dns-shop.ru/catalog/17a8a01d16404e77/smartfony/?order=2&groupBy=avails&stock=now-today-tomorrow-later&p={0}'.format(page))\n",
+        "        phones_list = PhoneList()\n",
+        "        html = self.driver.find_element_by_xpath('html')\n",
+        "        for i in range(30):\n",
+        "            html.send_keys(Keys.PAGE_DOWN)\n",
+        "        phones_elem = self.driver.find_element_by_xpath('/html/body/div[1]/div/div[2]/div/div[3]/div/div[3]')\n",
+        "        for phones in phones_elem.find_elements_by_xpath('div'):\n",
+        "            name = phones.find_element_by_xpath('a/span').text\n",
+        "            url = phones.find_element_by_xpath('a').get_attribute('href')\n",
+        "            price = phones.find_element_by_xpath('div[4]/div/div[1]').text.replace(' ', '')\n",
+        "            price = re.findall('[0-9]*', price)[0]\n",
+        "            phones_list.add(Phone(name, price, url))\n",
+        "        return phones_list.phones_list\n",
+        "\n",
+        "    def get_amount_str(self):\n",
+        "        self.driver.get('https://www.dns-shop.ru/catalog/17a8a01d16404e77/smartfony/?order=2&groupBy=avails&stock=now-today-tomorrow-later')\n",
+        "        html = self.driver.find_element_by_xpath('html')\n",
+        "        for i in range(30):\n",
+        "            html.send_keys(Keys.PAGE_DOWN)\n",
+        "        href = self.driver.find_element_by_xpath('//*[@id=\"products-list-pagination\"]/ul/li[12]/a').get_attribute('href')\n",
+        "        return href.split('/')[-1].replace('?p=', '')\n",
+        "\n",
+        "if __name__ == '__main__':\n",
+        "    db = db.Database()\n",
+        "    driver = Driver()\n",
+        "    amount = 0\n",
+        "    for i in range(1, int(driver.get_amount_str()) + 1):\n",
+        "        phones_list = driver.get_phones(str(i))\n",
+        "        for phones in phones_list:\n",
+        "            if amount < 30:\n",
+        "                db.upload_phones(phones)\n",
+        "                amount += 1\n",
+        "            else:\n",
+        "                exit(1)\n",
+        "                break\n",
+        "        db.commit()\n",
+        "class Phone:\n",
+        "    def __init__(self, name: str, price: str, url: str):\n",
+        "        self.name = name\n",
+        "        self.price = price\n",
+        "        self.url = url\n",
+        "\n",
+        "class PhoneList:\n",
+        "    def __init__(self):\n",
+        "        self.phones_list = []\n",
+        "    def add(self, phones: Phone):\n",
+        "        self.phones_list.append(phones)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 391
+        },
+        "id": "GlmXCw_2K42m",
+        "outputId": "13988b02-bd47-4868-c563-6f4cd85ce1cc"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "E: Invalid operation mysql.connector\n"
+          ]
+        },
+        {
+          "output_type": "error",
+          "ename": "ModuleNotFoundError",
+          "evalue": "ignored",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mModuleNotFoundError\u001b[0m                       Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-9-a5e24fc26201>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0mget_ipython\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msystem\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'apt mysql.connector'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0;32mimport\u001b[0m \u001b[0mmysql\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mconnector\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0;32mfrom\u001b[0m \u001b[0mobject\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mPhone\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0;32mclass\u001b[0m \u001b[0mDatabase\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0m__init__\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mModuleNotFoundError\u001b[0m: No module named 'mysql'",
+            "",
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0;32m\nNOTE: If your import is failing due to a missing package, you can\nmanually install dependencies using either !pip or !apt.\n\nTo view examples of installing some common dependencies, click the\n\"Open Examples\" button below.\n\u001b[0;31m---------------------------------------------------------------------------\u001b[0m\n"
+          ],
+          "errorDetails": {
+            "actions": [
+              {
+                "action": "open_url",
+                "actionText": "Open Examples",
+                "url": "/notebooks/snippets/importing_libraries.ipynb"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        ""
+      ],
+      "metadata": {
+        "id": "JQ8E-e3RNUHh"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
